@@ -15,7 +15,7 @@ def getBestGroupPrices(rates: Seq[Rate], prices: Seq[CabinPrice]): Seq[BestGroup
   // We need to sanitize the input rates for errata as there could be two
   // `Rate`s with the same `rateCode` but different `rateGroup`s, which
   // breaks a fundamental assumption on the one-to-one relationship between
-  // rateCodes and rateGroups, which in turn may lead to unexpected outputs.
+  // rateCodes and rateGroups; this could in turn lead to unexpected outputs.
   val uniqueRates = rates.distinctBy(_.rateCode)
 
   // We use Views here for lazy evaluation semantics.
