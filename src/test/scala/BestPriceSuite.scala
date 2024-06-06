@@ -1,7 +1,6 @@
 import munit._
 import org.scalacheck._
 import org.scalacheck.Prop._
-import org.scalacheck.Arbitrary._
 import best_price_finder._
 
 class BestPriceSuite extends FunSuite with ScalaCheckSuite {
@@ -66,7 +65,7 @@ class BestPriceSuite extends FunSuite with ScalaCheckSuite {
   property("ouput values are sourced from input pairs joined on rate code") {
     forAllNoShrink(genRateCodes) { rateCodes =>
       forAll(genInputs(rateCodes)) { (rates, prices) =>
-        val result = getBestGroupPrices(rates.toSeq, prices.toSeq)
+        val result = getBestGroupPrices(rates, prices)
 
         result.map(x => {
           // There can be multiple `CabinPrice`s with the same rate code;
@@ -92,7 +91,7 @@ class BestPriceSuite extends FunSuite with ScalaCheckSuite {
       forAll(genInputs(rateCodes)) { (rates, prices) =>
         val inputRateGroups = rates.map(_.rateGroup)
 
-        val result = getBestGroupPrices(rates.toSeq, prices.toSeq)
+        val result = getBestGroupPrices(rates, prices)
 
         areEqualSets(result.map(_.rateGroup), inputRateGroups.sorted)
       }
@@ -102,7 +101,7 @@ class BestPriceSuite extends FunSuite with ScalaCheckSuite {
   property("output contains only one best rate code per rate group") {
     forAllNoShrink(genRateCodes) { rateCodes =>
       forAll(genInputs(rateCodes)) { (rates, prices) =>
-        val result = getBestGroupPrices(rates.toSeq, prices.toSeq)
+        val result = getBestGroupPrices(rates, prices)
 
         val groupedResult = result.groupMap(_.rateGroup)(_.rateCode)
 
@@ -118,7 +117,7 @@ class BestPriceSuite extends FunSuite with ScalaCheckSuite {
       forAll(genInputs(rateCodes)) { (rates, prices) =>
         val cabinCodesByRateCode = prices.groupMap(_.rateCode)(_.cabinCode)
 
-        val result = getBestGroupPrices(rates.toSeq, prices.toSeq)
+        val result = getBestGroupPrices(rates, prices)
 
         val groupedResult = result.groupMap(_.rateCode)(_.cabinCode)
 
@@ -150,7 +149,7 @@ class BestPriceSuite extends FunSuite with ScalaCheckSuite {
             _.groupMapReduce(_._2.rateCode)(_._2.price)(_ + _).values.min
           ).toMap
 
-        val result = getBestGroupPrices(rates.toSeq, prices.toSeq)
+        val result = getBestGroupPrices(rates, prices)
 
         // Sum of prices per rate group
         val groupedResult = 
