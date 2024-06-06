@@ -62,7 +62,7 @@ class BestPriceSuite extends FunSuite with ScalaCheckSuite {
 
   // In other words, the outputs aren't criss-crossing values from input
   // pairs with different rateCodes
-  property("ouput values are sourced from input pairs joined on rate code") {
+  property("ouput values are sourced from input pairs with like rate codes") {
     forAllNoShrink(genRateCodes) { rateCodes =>
       forAll(genInputs(rateCodes)) { (rates, prices) =>
         val result = getBestGroupPrices(rates, prices)
@@ -86,7 +86,7 @@ class BestPriceSuite extends FunSuite with ScalaCheckSuite {
     }
   }
 
-  property("all rate groups appear in output") {
+  property("all input rate groups appear in outputs, and vice versa") {
     forAllNoShrink(genRateCodes) { rateCodes =>
       forAll(genInputs(rateCodes)) { (rates, prices) =>
         val inputRateGroups = rates.map(_.rateGroup)
