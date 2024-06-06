@@ -1,8 +1,23 @@
-## sbt project compiled with Scala 3
+# TST Takehome Solutions
 
-### Usage
+Solutions for TST's takehome assignment.
 
-This is a normal sbt project. You can compile code with `sbt compile`, run it with `sbt run`, and `sbt console` will start a Scala 3 REPL.
+## Running
 
-For more information on the sbt-dotty plugin, see the
-[scala3-example-project](https://github.com/scala/scala3-example-project/blob/main/README.md).
+To run functions in each assignment against the sample input data:
+
+```bash
+# Problem 1
+sbt "runMain printBestPrices"
+
+# Problem 2
+sbt "runMain printCombinations"
+```
+
+## Testing
+
+To execute the test suites for both assignments:
+
+```bash
+sbt test
+```
