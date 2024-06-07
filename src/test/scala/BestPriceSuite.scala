@@ -68,9 +68,7 @@ class BestPriceSuite extends FunSuite with ScalaCheckSuite {
       forAll(genInputs(rateCodes)) { (rates, prices) =>
         val result = getBestGroupPrices(rates, prices)
 
-        result
-          .map(_.price >= 0)
-          .foldLeft(true)(_ && _)
+        result.map(_.price >= 0).foldLeft(true)(_ && _)
       }
     }
   }
