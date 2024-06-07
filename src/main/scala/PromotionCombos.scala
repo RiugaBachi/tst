@@ -104,7 +104,7 @@ def allCombinablePromotions(allPromotions: Seq[Promotion]): Seq[PromotionCombo] 
       .toSet
   }
 
-  sanitizedPromotions.toSet.flatMap { p =>
+  sanitizedPromotions.flatMap { p =>
     findPromotionChains(Set.empty, p, sanitizedPromotions.excl(p))
       .getOrElse(Set.empty)
   }.toSeq.filter(_.promotionCodes.length > 1)
