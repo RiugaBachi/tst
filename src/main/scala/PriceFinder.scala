@@ -10,13 +10,21 @@ case class BestGroupPrice(cabinCode: String, rateCode: String, price: BigDecimal
 //  - Tech Debt: We should investigate whether or not we want to sanitize 
 //  `price` fields in the input data via utilizing a (custom?) smart-constructed
 //  BigDecimal wrapper type that disallows negative values. This would be cleaner 
-//  than writing tests for these edge cases.
+//  than writing specific checks and tests for these edge cases.
 def getBestGroupPrices(rates: Seq[Rate], prices: Seq[CabinPrice]): Seq[BestGroupPrice] = {
   // We need to sanitize the input rates for errata as there could be two
   // `Rate`s with the same `rateCode` but different `rateGroup`s, which
   // breaks a fundamental assumption on the one-to-one relationship between
   // rateCodes and rateGroups; this could in turn lead to unexpected outputs.
-  val uniqueRates = rates.distinctBy(_.rateCode)
+  //
+  // We retain the first instance of a duplicate rate within the sequence for now.
+  val sanitizedRates = rates.distinctBy(_.rateCode)
+  // Likewise, we should sanitize the input prices for negatives; at least for now.
+  // This may not be the best long-term solution though. 
+  // (See TODO/Tech Debt comment in function head)
+  //
+  // We discard any such CabinPrice rows entirely as errata for now.
+  val sanitizedPrices = prices.filter(_.price >= 0)
 
   // We use Views here for lazy evaluation semantics.
   //
@@ -24,18 +32,18 @@ def getBestGroupPrices(rates: Seq[Rate], prices: Seq[CabinPrice]): Seq[BestGroup
   // the resulting memory blowup could very likely OOM whatever environment this is running on.
   val allPossibilities = 
     for {
-      rate <- uniqueRates.view
-      price <- prices.view
+      rate <- sanitizedRates.view
+      price <- sanitizedPrices.view
       if price.rateCode == rate.rateCode
     } yield BestGroupPrice(price.cabinCode, rate.rateCode, price.price, rate.rateGroup)
 
   val rateCodesByRateGroup : Map[String, Seq[String]] = 
-    uniqueRates.groupMap(_.rateGroup)(_.rateCode)
+    sanitizedRates.groupMap(_.rateGroup)(_.rateCode)
   
   // We have the option of sourcing rateCodes from `rates` or `prices`
   // For this exercise, let's assume the set of all unique rate codes in either sequence are equal.
   val totalPricesByRateCode : Map[String, BigDecimal] = 
-    prices.groupMapReduce(_.rateCode)(_.price)(_ + _)
+    sanitizedPrices.groupMapReduce(_.rateCode)(_.price)(_ + _)
 
   val cheapestRateCodes : Seq[String] =
       rateCodesByRateGroup.values

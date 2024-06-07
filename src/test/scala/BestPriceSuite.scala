@@ -17,7 +17,10 @@ class BestPriceSuite extends FunSuite with ScalaCheckSuite {
     for {
       rateCode <- Gen.oneOf(rateCodes)
       cabinCode <- Gen.identifier
-      price <- Gen.posNum : Gen[BigDecimal]
+      price <- Gen.oneOf(
+        Gen.posNum : Gen[BigDecimal], 
+        Gen.negNum : Gen[BigDecimal]
+      )
     } yield CabinPrice(cabinCode, rateCode, price)
 
   def genInputs(rateCodes: Seq[String]): Gen[(List[Rate], List[CabinPrice])] = 
@@ -58,6 +61,18 @@ class BestPriceSuite extends FunSuite with ScalaCheckSuite {
          )
 
     assert(areEqualSets(result, expected))
+  }
+
+  property("ouput values do not contain negative prices") {
+    forAllNoShrink(genRateCodes) { rateCodes =>
+      forAll(genInputs(rateCodes)) { (rates, prices) =>
+        val result = getBestGroupPrices(rates, prices)
+
+        result
+          .map(_.price >= 0)
+          .foldLeft(true)(_ && _)
+      }
+    }
   }
 
   // In other words, the outputs aren't criss-crossing values from input
@@ -115,7 +130,9 @@ class BestPriceSuite extends FunSuite with ScalaCheckSuite {
   property("all cabin codes for each rate code appear in output") {
     forAllNoShrink(genRateCodes) { rateCodes =>
       forAll(genInputs(rateCodes)) { (rates, prices) =>
-        val cabinCodesByRateCode = prices.groupMap(_.rateCode)(_.cabinCode)
+        val sanitizedPrices = prices.filter(_.price >= 0)
+
+        val cabinCodesByRateCode = sanitizedPrices.groupMap(_.rateCode)(_.cabinCode)
 
         val result = getBestGroupPrices(rates, prices)
 
@@ -134,12 +151,13 @@ class BestPriceSuite extends FunSuite with ScalaCheckSuite {
   property("output rate codes have lowest prices within rate group") {
     forAllNoShrink(genRateCodes) { rateCodes =>
       forAll(genInputs(rateCodes)) { (rates, prices) =>
-        val uniqueRates = rates.distinctBy(_.rateCode)
+        val sanitizedRates = rates.distinctBy(_.rateCode)
+        val sanitizedPrices = prices.filter(_.price >= 0)
 
         val inputPairs = 
           for {
-            rate <- uniqueRates.view
-            price <- prices.view
+            rate <- sanitizedRates.view
+            price <- sanitizedPrices.view
             if price.rateCode == rate.rateCode
           } yield (rate, price)
 
