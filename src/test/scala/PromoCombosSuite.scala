@@ -12,14 +12,10 @@ class PromoCombosSuite extends FunSuite with ScalaCheckSuite {
   def genPromotions: Gen[List[Promotion]] = 
     Gen.listOfN(10,
       for {
-        codes <- Gen.listOfN(10, Gen.identifier)
-        notCombinableWith <- Gen.someOf(codes.tail)
+        codes <- Gen.listOfN(10, Gen.alphaChar.map(_.toString))
+        notCombinableWith <- Gen.someOf(codes)
       } yield Promotion(codes.head, notCombinableWith.toSeq)
     )
-
-  override def scalaCheckTestParameters =
-    super.scalaCheckTestParameters
-      .withMinSuccessfulTests(1)
 
   /***************************
    * allCombinablePomotions
