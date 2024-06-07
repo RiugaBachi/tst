@@ -26,7 +26,7 @@ sbt test
 
 ## Commentary
 
-As no hard constraints for performance were given, I optimized my approach around simplicity and readability.
+As no hard constraints for performance were given, I optimized my approach around simplicity, readability, and ease of change.
 
 I utilized a mix of unit and property-based testing. I believe the latter is key to reducing the number of questionable unit tests that add minimal value and provide loose guarantees about a system. Early on, I utilized more unit tests, however as I discovered properties about the system and codified them as property tests, some of them began to subsume some of the original unit tests, and those were in turn removed.
 
