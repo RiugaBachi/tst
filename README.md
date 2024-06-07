@@ -1,6 +1,6 @@
 # TST Takehome Solutions
 
-Solutions for TST's takehome assignment.
+Solutions for TST's takehome exercise.
 
 (Incidentally, my first attempt at writing Scala!)
 
