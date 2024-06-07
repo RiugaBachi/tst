@@ -18,7 +18,7 @@ sbt "runMain printCombinations"
 
 ## Testing
 
-To run the test suites for both assignments:
+To run the test suites for both problems:
 
 ```bash
 sbt test
