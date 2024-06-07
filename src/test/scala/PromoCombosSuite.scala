@@ -19,12 +19,7 @@ class PromoCombosSuite extends FunSuite with ScalaCheckSuite {
 
   override def scalaCheckTestParameters =
     super.scalaCheckTestParameters
-      .withMinSuccessfulTests(1)
-
-  //override def scalaCheckInitialSeed = "jCQS_BF9Qghye9NUN8JMRC2y7MfBPPk9uNuR4Jh0G-D="
-  //override def scalaCheckInitialSeed = "vEHf4zGOJD5EzaY75l61PPDkqVl8DHg78JycC3UYYDK="
-  //override def scalaCheckInitialSeed = "5rQY0UGTF3GSTAcQ4X1U_3sC0ecSBfogA3QRb8m1qjG="
-  override def scalaCheckInitialSeed = "F7qIpLPWt4S5047YT8e_Dbg2ombXHwxm8aTQIgF-HhE="
+      .withMinSuccessfulTests(2)
 
   /***************************
    * allCombinablePomotions
@@ -225,7 +220,7 @@ class PromoCombosSuite extends FunSuite with ScalaCheckSuite {
 
   // If the following property holds, so too will several properties from allCombinablePromotions
   // hold for combinablePromotions by implication; namely:
-  //  - all output promo combos are not subsets of one another
+  //  - all output promo combos are maximal
   //  - all output promo combos have more than one promotion code
   property("combinablePromotions, outputs are a subset of allCombinablePromotions") {
     forAll(genPromotions.suchThat(_.length > 0)) { promotions =>
