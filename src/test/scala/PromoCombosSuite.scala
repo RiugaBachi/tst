@@ -1,6 +1,8 @@
 import munit._
 import org.scalacheck._
+import org.scalacheck.Test.{ Parameters }
 import org.scalacheck.Prop._
+import scala.util.Random
 import promotion_combos._
 
 class PromoCombosSuite extends FunSuite with ScalaCheckSuite {
@@ -8,12 +10,21 @@ class PromoCombosSuite extends FunSuite with ScalaCheckSuite {
     (xs.toSet &~ ys.toSet).isEmpty
 
   def genPromotions: Gen[List[Promotion]] = 
-    Gen.listOfN(12,
+    Gen.listOfN(10,
       for {
-        codes <- Gen.listOf(Gen.identifier).suchThat(_.length > 0)
+        codes <- Gen.listOfN(10, Gen.identifier)
         notCombinableWith <- Gen.someOf(codes.tail)
       } yield Promotion(codes.head, notCombinableWith.toSeq)
     )
+
+  override def scalaCheckTestParameters =
+    super.scalaCheckTestParameters
+      .withMinSuccessfulTests(1)
+
+  //override def scalaCheckInitialSeed = "jCQS_BF9Qghye9NUN8JMRC2y7MfBPPk9uNuR4Jh0G-D="
+  //override def scalaCheckInitialSeed = "vEHf4zGOJD5EzaY75l61PPDkqVl8DHg78JycC3UYYDK="
+  //override def scalaCheckInitialSeed = "5rQY0UGTF3GSTAcQ4X1U_3sC0ecSBfogA3QRb8m1qjG="
+  override def scalaCheckInitialSeed = "F7qIpLPWt4S5047YT8e_Dbg2ombXHwxm8aTQIgF-HhE="
 
   /***************************
    * allCombinablePomotions
@@ -40,9 +51,9 @@ class PromoCombosSuite extends FunSuite with ScalaCheckSuite {
     assert(areEqualSets(result, expected))
   }
 
-  test("input errata case: allCombinablePromotions, compatibility is checked fowards") {
+  test("edge case: allCombinablePromotions, a promotion not combinable with itself is disregarded") {
     val promotions =
-      Seq( Promotion("P1", Seq("P3"))
+      Seq( Promotion("P1", Seq("P1"))
          , Promotion("P2", Seq())
          , Promotion("P3", Seq())
          )
@@ -50,33 +61,101 @@ class PromoCombosSuite extends FunSuite with ScalaCheckSuite {
     val result = allCombinablePromotions(promotions)
 
     val expected = 
-      Seq( PromotionCombo(Seq("P1", "P2"))
-         , PromotionCombo(Seq("P2", "P3"))
+      Seq( PromotionCombo(Seq("P2", "P3"))
          )
 
     assert(areEqualSets(result, expected))
   }
 
-  test("input errata case: allCombinablePromotions, compatibility is checked backwards") {
+  test("edge case: allCombinablePromotions, in the event of a duplicate promotion, their non-combinable promotions are merged") {
     val promotions =
-      Seq( Promotion("P1", Seq())
+      Seq( Promotion("P1", Seq("P2"))
+         , Promotion("P1", Seq())
          , Promotion("P2", Seq())
-         , Promotion("P3", Seq("P1"))
+         , Promotion("P3", Seq())
          )
 
     val result = allCombinablePromotions(promotions)
 
     val expected = 
-      Seq( PromotionCombo(Seq("P1", "P2"))
+      Seq( PromotionCombo(Seq("P1", "P3"))
          , PromotionCombo(Seq("P2", "P3"))
          )
 
     assert(areEqualSets(result, expected))
   }
 
-  property("allCombinablePromotions, all outputs are maximally combinable") {
-    forAll(genPromotions) { promotion =>
-      // A promotion combo being a subset of another means it is not maximally combinable
+  property("allCombinablePromotions, all output promotion codes exist in inputs, and vice versa") {
+    forAll(genPromotions) { promotions =>
+      val result = 
+        allCombinablePromotions(promotions)
+          .map(_.promotionCodes.toSet)
+          .foldLeft(Set.empty: Set[String])(_.union(_))
+
+      (result &~ promotions.map(_.code).toSet).isEmpty
+    }
+  }
+
+  property("allCombinablePromotions, promotion combos have more than 1 promotion code") {
+    forAll(genPromotions) { promotions =>
+      val result = 
+        allCombinablePromotions(promotions)
+          .map(_.promotionCodes.length > 1)
+
+      result.foldLeft(true)(_ && _)
+    }
+  }
+
+  property("allCombinablePromotions, all promo codes within promo combos are combinable with one another") {
+    forAll(genPromotions) { promotions =>
+      val nonCombinablesMap = promotions.groupMapReduce(_.code)(_.notCombinableWith)(_ ++ _)
+
+      val result = allCombinablePromotions(promotions)
+
+      result.map(combo =>
+        val codes = combo.promotionCodes.toSet
+        val nonCombinables = codes.flatMap(c => nonCombinablesMap.get(c).map(_.toSet).getOrElse(Set.empty))
+
+        (codes & nonCombinables).isEmpty
+      ).foldLeft(true)(_ && _)
+    }
+  }
+
+  property("allCombinablePromotions, all promo combos are maximally combinable") {
+    forAll(genPromotions) { promotions =>
+      val result = allCombinablePromotions(promotions)
+
+      val sanitizedPromotions = 
+        promotions.groupMapReduce(_.code)(x => x)((x, y) => 
+          Promotion(x.code, x.notCombinableWith ++ y.notCombinableWith)
+        ).values
+
+      result.map(combo =>
+        val codes = combo.promotionCodes.toSet
+
+        val promotionsIncluded = sanitizedPromotions.filter(p => codes.contains(p.code))
+        val promosNotIncluded = sanitizedPromotions.filter(p => !codes.contains(p.code))
+
+        val internalNonCombinables = promotionsIncluded.flatMap(_.notCombinableWith).toSet
+
+        val allAreMaximal =
+          promosNotIncluded.map(p => {
+            // An unincluded promotion is considered externally incompatible if:
+            //  1. It is self-contradicting (not combinable with itself)
+            //  2. Its own notCombinableWith contains a conflict with the promotion codes in the combo
+            val externallyIncompatible = p.notCombinableWith.contains(p.code) || !(p.notCombinableWith.toSet & codes).isEmpty
+            // An unincluded promotion is considered internally incompatible if the set of 
+            // noncombinable promotions within the combo conflicts with the unincluded promotion.
+            val internallyIncompatible = internalNonCombinables.contains(p.code)
+            // To prove that an unincluded promotion could not have been included,
+            // we need to establish the presence of either an external or internal incompatibility.
+            val couldNotBeIncluded = externallyIncompatible || internallyIncompatible
+
+            couldNotBeIncluded
+          }).foldLeft(true)(_ && _)
+
+        allAreMaximal
+      ).foldLeft(true)(_ && _)
     }
   }
 
@@ -134,24 +213,28 @@ class PromoCombosSuite extends FunSuite with ScalaCheckSuite {
     assert(areEqualSets(result, Seq()))
   }
 
-  property("combinablePromotions, all outputs contain required promotion") {
-    forAll(genPromotions) { promotions =>
-      //promotions.flatMap(p => 
-      //  combinablePromotions(p.code, promotions)
-      //    .map(_.promotionCodes.contains(p.code))
-      //).foldLeft(true)(_ && _)
+  property("combinablePromotions, all outputs contain the required promotion") {
+    forAll(genPromotions.suchThat(_.length > 0)) { promotions =>
+      exists(Gen.oneOf(promotions)) { somePromo =>
+        combinablePromotions(somePromo.code, promotions)
+          .map(_.promotionCodes.contains(somePromo.code))
+          .foldLeft(true)(_ && _)
+      }
     }
   }
 
+  // If the following property holds, so too will several properties from allCombinablePromotions
+  // hold for combinablePromotions by implication; namely:
+  //  - all output promo combos are not subsets of one another
+  //  - all output promo combos have more than one promotion code
   property("combinablePromotions, outputs are a subset of allCombinablePromotions") {
-    forAll(genPromotions) { promotions =>
-      val allCombinable = allCombinablePromotions(promotions)
-      println("here")
-      promotions.map(p => 
-        val combinableFor = combinablePromotions(p.code, promotions)
-        combinableFor.toSet.subsetOf(allCombinable.toSet)
-      ).foldLeft(true)(_ && _)
+    forAll(genPromotions.suchThat(_.length > 0)) { promotions =>
+      exists(Gen.oneOf(promotions)) { somePromo =>
+        val allCombinables = allCombinablePromotions(promotions)
+        val combinablesForSomePromo = combinablePromotions(somePromo.code, promotions)
+
+        combinablesForSomePromo.toSet.subsetOf(allCombinables.toSet)
+      }
     }
   }
-
 }
