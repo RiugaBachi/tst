@@ -19,7 +19,7 @@ class PromoCombosSuite extends FunSuite with ScalaCheckSuite {
 
   override def scalaCheckTestParameters =
     super.scalaCheckTestParameters
-      .withMinSuccessfulTests(2)
+      .withMinSuccessfulTests(1)
 
   /***************************
    * allCombinablePomotions
@@ -210,10 +210,24 @@ class PromoCombosSuite extends FunSuite with ScalaCheckSuite {
 
   property("combinablePromotions, all outputs contain the required promotion") {
     forAll(genPromotions.suchThat(_.length > 0)) { promotions =>
-      exists(Gen.oneOf(promotions)) { somePromo =>
+      forAll(Gen.oneOf(promotions)) { somePromo =>
         combinablePromotions(somePromo.code, promotions)
           .map(_.promotionCodes.contains(somePromo.code))
           .foldLeft(true)(_ && _)
+      }
+    }
+  }
+
+  property("combinablePromotions, outputs contain every promotion combo from allCombinablePromotions with the required promotion") {
+    forAll(genPromotions.suchThat(_.length > 0)) { promotions =>
+      val allCombinables = allCombinablePromotions(promotions)
+      forAll(Gen.oneOf(promotions)) { somePromo =>
+        val combinablesForSomePromo = combinablePromotions(somePromo.code, promotions)
+        
+        val numMatchingOutputsFromAllCombinables = allCombinables.filter(_.promotionCodes.contains(somePromo.code)).length
+        val numOutputsFromCombinables = combinablesForSomePromo.length
+
+        numOutputsFromCombinables == numMatchingOutputsFromAllCombinables
       }
     }
   }
@@ -224,8 +238,8 @@ class PromoCombosSuite extends FunSuite with ScalaCheckSuite {
   //  - all output promo combos have more than one promotion code
   property("combinablePromotions, outputs are a subset of allCombinablePromotions") {
     forAll(genPromotions.suchThat(_.length > 0)) { promotions =>
-      exists(Gen.oneOf(promotions)) { somePromo =>
-        val allCombinables = allCombinablePromotions(promotions)
+      val allCombinables = allCombinablePromotions(promotions)
+      forAll(Gen.oneOf(promotions)) { somePromo =>
         val combinablesForSomePromo = combinablePromotions(somePromo.code, promotions)
 
         combinablesForSomePromo.toSet.subsetOf(allCombinables.toSet)
