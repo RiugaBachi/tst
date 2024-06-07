@@ -33,6 +33,14 @@ case class PromotionCombo(promotionCodes: Seq[String]) {
 def allCombinablePromotions(allPromotions: Seq[Promotion]): Seq[PromotionCombo] =
   // Recursively find combinable chains of promotions, starting from an initial promotion
   // and branching into compatible (combinable) remaining promotions.
+  //
+  // An input data edge case we have to consider here is that just because Promotion A
+  // has Promotion B in its notCombinableWith, does not guarantee that Promotion B
+  // has Promotion A in its notCombinableWith. It _should_, but the types as-is
+  // do not guarantee this invariant.
+  //
+  // As a result, we need to play it safe and check compatibility "backwards" 
+  // as well as "forwards" as we traverse the input data and build each chain.
   def findPromotionChains(
     promotionCodesInChain: Set[String],
     promotionToAdd: Promotion,
