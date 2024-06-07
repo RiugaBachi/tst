@@ -96,13 +96,25 @@ def allCombinablePromotions(allPromotions: Seq[Promotion]): Seq[PromotionCombo] 
       .toSet
   }
 
-  sanitizedPromotions.foldLeft(Set.empty : Set[PromotionCombo]) { (accum, p) =>
-    accum.union(
-      findPromotionChains(Set.empty, p, sanitizedPromotions.excl(p))
-        .getOrElse(Set.empty)
-    )
+  sanitizedPromotions.toSet.flatMap { p =>
+    findPromotionChains(Set.empty, p, sanitizedPromotions.excl(p))
+      .getOrElse(Set.empty)
   }.toSeq.filter(_.promotionCodes.length > 1)
 
+// N.B This is not optimal as we need to first compute all combinable promotions before filtering for
+// the ones we care about.
+//
+// This implementation is, however, simple; this in turn also keeps our test suite simple.
+//
+// If we use this function frequently in production and wanted to reduce the time complexity,
+// we should look into refactoring the logic from allCombinablePromotions into a private helper function
+// internal to this package that, say, returns a map of "root" promotion codes to a lazy context we can evaluate
+// to obtain the combinable promotions for that particular root promotion. `allCombinablePromotions` would then
+// evaluate all these contexts and merge the resultant sets (kind of like what it is doing now at its tail),
+// while `combinablePromotions` can look up the context it cares about and evaluate just that.
+//
+// I didn't roll with this implementation as it adds complexity without clear hard requirements that justify
+// the need for it.
 def combinablePromotions(promotionCode: String, allPromotions: Seq[Promotion]): Seq[PromotionCombo] =
   allCombinablePromotions(allPromotions)
     .filter(_.promotionCodes.contains(promotionCode))
