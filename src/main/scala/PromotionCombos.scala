@@ -113,8 +113,11 @@ def allCombinablePromotions(allPromotions: Seq[Promotion]): Seq[PromotionCombo] 
 // evaluate all these contexts and merge the resultant sets (kind of like what it is doing now at its tail),
 // while `combinablePromotions` can look up the context it cares about and evaluate just that.
 //
-// I didn't roll with this implementation as it adds complexity without clear hard requirements that justify
-// the need for it.
+// Another idea would be to move `findPromotionChains` and the promotion sanitization logic out to be used in
+// `allCombinablePromotions` and `combinablePromotions` independently.
+//
+// I didn't roll with the aforementioned implementations as it adds complexity without clear hard requirements that 
+// justify the need for it.
 def combinablePromotions(promotionCode: String, allPromotions: Seq[Promotion]): Seq[PromotionCombo] =
   allCombinablePromotions(allPromotions)
     .filter(_.promotionCodes.contains(promotionCode))
