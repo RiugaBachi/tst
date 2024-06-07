@@ -36,4 +36,4 @@ There are some edge cases within each assignment that I handled according to my 
 
 Some of the these edge cases could be reduced and/or voided entirely by remodeling the function signatures and case classes. I decided not to stray away from the types as defined in the assignment templates in this case, but in a real scenario I would consider the big picture and see where we can reap value from utilizing different types; perhaps even defining our own wrapper types encapsulated in their own modules (packages) with smart constructors that provide guarantees on certain invariants (whose properties we can in turn test independently, and not have cascade as edge case tests in other, unrelated, test modules).
 
-Besides reducing the number of edge cases we need to handle, there could also be additional code clarity and/or performance gains to reap (the constant conversions to/from `Set`/`Seq` being one example that comes to mind).
+Besides reducing the number of edge cases we need to handle, there could also be additional code clarity and/or performance gains to be reaped (the constant conversions to/from `Set`/`Seq` being one example that comes to mind).
